@@ -1,0 +1,195 @@
+import { createContext, useContext, useEffect, useMemo, useReducer, type Dispatch, type ReactNode } from "react";
+import { ALL_FOODS } from "../data/foods";
+import type { ActivityLevel, BodyMetrics, FoodInput, HealthGoal, MealOccasion, UnitId, View } from "../types";
+
+const STORAGE_KEY = "nutrigo-state-v1";
+const QUANTITY_VERSION = 2;
+
+export interface AppState {
+  view: View;
+  step: number;
+  occasion: MealOccasion;
+  inputs: Record<string, FoodInput>;
+  body: BodyMetrics;
+  plan: string[];
+  quantityVersion: number;
+  completedAt: number | null;
+}
+
+type Action =
+  | { type: "nav"; view: View; step?: number }
+  | { type: "step"; step: number }
+  | { type: "occasion"; occasion: MealOccasion }
+  | { type: "quantity"; id: string; quantity: string }
+  | { type: "unit"; id: string; unit: UnitId }
+  | { type: "preset" }
+  | { type: "reset-intake" }
+  | { type: "body"; patch: Partial<BodyMetrics> }
+  | { type: "toggle-plan"; id: string };
+
+const SAMPLE: Record<string, FoodInput> = {
+  rice: { quantity: "2", unit: "fist" },
+  poultry: { quantity: "1.5", unit: "palm" },
+  greens: { quantity: "1", unit: "fist" },
+  fruit: { quantity: "1", unit: "fist" },
+  oil: { quantity: "1", unit: "thumb" },
+  bubble: { quantity: "1", unit: "can" },
+  chocolate: { quantity: "1", unit: "pack" },
+};
+
+function blankInputs(): Record<string, FoodInput> {
+  return Object.fromEntries(ALL_FOODS.map((food) => [food.id, { quantity: "0", unit: food.units[0] }]));
+}
+
+export const initialBody: BodyMetrics = {
+  heightCm: "",
+  weightKg: "",
+  age: "",
+  gender: "",
+  activity: "sedentary",
+  goal: "maintain",
+};
+
+function initialState(): AppState {
+  return {
+    view: "home",
+    step: 0,
+    occasion: "daily",
+    inputs: blankInputs(),
+    body: initialBody,
+    plan: [],
+    quantityVersion: QUANTITY_VERSION,
+    completedAt: null,
+  };
+}
+
+function reducer(state: AppState, action: Action): AppState {
+  switch (action.type) {
+    case "nav":
+      return {
+        ...state,
+        view: action.view,
+        step: action.step === undefined ? state.step : action.step,
+        // Finishing the 5-step log lands on the report: stamp it so the mascot can celebrate.
+        completedAt: action.view === "report" && state.view !== "report" ? Date.now() : state.completedAt,
+      };
+    case "step":
+      return { ...state, step: action.step };
+    case "occasion":
+      return { ...state, occasion: action.occasion };
+    case "quantity":
+      return {
+        ...state,
+        inputs: {
+          ...state.inputs,
+          [action.id]: { ...state.inputs[action.id], quantity: action.quantity },
+        },
+      };
+    case "unit":
+      return {
+        ...state,
+        inputs: {
+          ...state.inputs,
+          [action.id]: { ...state.inputs[action.id], unit: action.unit },
+        },
+      };
+    case "preset": {
+      const inputs = blankInputs();
+      for (const [id, value] of Object.entries(SAMPLE)) inputs[id] = value;
+      return { ...state, inputs, occasion: "daily", step: 4, view: "calculator" };
+    }
+    case "reset-intake":
+      return { ...state, inputs: blankInputs(), step: 0 };
+    case "body":
+      return { ...state, body: { ...state.body, ...action.patch } };
+    case "toggle-plan": {
+      const plan = state.plan.includes(action.id)
+        ? state.plan.filter((id) => id !== action.id)
+        : [...state.plan, action.id];
+      return { ...state, plan };
+    }
+    default:
+      return state;
+  }
+}
+
+function isOccasion(value: unknown): value is MealOccasion {
+  return value === "daily" || value === "breakfast" || value === "lunch" || value === "dinner" || value === "afternoon";
+}
+
+function isView(value: unknown): value is View {
+  return value === "home" || value === "calculator" || value === "bmi" || value === "report";
+}
+
+function isActivity(value: unknown): value is ActivityLevel {
+  return value === "sedentary" || value === "light" || value === "moderate" || value === "active" || value === "very_active";
+}
+
+function isGoal(value: unknown): value is HealthGoal {
+  return value === "lose" || value === "maintain" || value === "gain" || value === "wellness";
+}
+
+function hydrate(): AppState {
+  const base = initialState();
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return base;
+    const saved = JSON.parse(raw) as Partial<AppState>;
+    const inputs = { ...base.inputs };
+    const keepSavedQuantities = saved.quantityVersion === QUANTITY_VERSION;
+    if (keepSavedQuantities && saved.inputs && typeof saved.inputs === "object") {
+      for (const food of ALL_FOODS) {
+        const entry = saved.inputs[food.id];
+        if (!entry) continue;
+        const unit = food.units.find((option) => option === entry.unit) ?? food.units[0];
+        inputs[food.id] = {
+          quantity: typeof entry.quantity === "string" && entry.quantity !== "" ? entry.quantity : "0",
+          unit,
+        };
+      }
+    }
+    return {
+      view: isView(saved.view) ? saved.view : "home",
+      step: typeof saved.step === "number" && saved.step >= 0 && saved.step <= 4 ? saved.step : 0,
+      occasion: isOccasion(saved.occasion) ? saved.occasion : "daily",
+      inputs,
+      quantityVersion: QUANTITY_VERSION,
+      body: {
+        heightCm: typeof saved.body?.heightCm === "string" ? saved.body.heightCm : "",
+        weightKg: typeof saved.body?.weightKg === "string" ? saved.body.weightKg : "",
+        age: typeof saved.body?.age === "string" ? saved.body.age : "",
+        gender: saved.body?.gender === "male" || saved.body?.gender === "female" ? saved.body.gender : "",
+        activity: isActivity(saved.body?.activity) ? saved.body.activity : "sedentary",
+        goal: isGoal(saved.body?.goal) ? saved.body.goal : "maintain",
+      },
+      plan: Array.isArray(saved.plan) ? saved.plan.filter((id) => typeof id === "string") : [],
+      completedAt: null,
+    };
+  } catch {
+    return base;
+  }
+}
+
+interface StoreValue {
+  state: AppState;
+  dispatch: Dispatch<Action>;
+}
+
+const StoreContext = createContext<StoreValue | null>(null);
+
+export function StoreProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, undefined, hydrate);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
+
+  const value = useMemo(() => ({ state, dispatch }), [state]);
+  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+}
+
+export function useStore(): StoreValue {
+  const value = useContext(StoreContext);
+  if (!value) throw new Error("useStore must be used inside StoreProvider");
+  return value;
+}
