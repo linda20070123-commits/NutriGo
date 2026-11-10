@@ -12,7 +12,7 @@ export interface MealCopy {
 
 export interface Messages {
   meta: { title: string };
-  nav: { home: string; meals: string; data: string; membership: string; login: string; menu: string; close: string; language: string };
+  nav: { home: string; meals: string; data: string; membership: string; membershipCenter: string; login: string; menu: string; close: string; language: string };
   login: { title: string; body: string; email: string; placeholder: string; continue: string; close: string };
   plan: { one: string; many: string };
   heroAlt: string;
@@ -30,6 +30,7 @@ export interface Messages {
     add: string;
     saved: string;
     matched: string;
+    book: string;
     alt: string;
   };
   footer: string;
@@ -63,7 +64,7 @@ const mealsEn: Record<string, MealCopy> = {
 export const COPY: Record<Locale, Messages> = {
   en: {
     meta: { title: "NutriGo · Commute nutrition for Sha Tin & Kowloon Tong" },
-    nav: { home: "Home", meals: "Meals", data: "Data & Goals", membership: "Membership", login: "Log in", menu: "Menu", close: "Close", language: "Language" },
+    nav: { home: "Home", meals: "Meals", data: "Data & Goals", membership: "Membership", membershipCenter: "Subscription Center", login: "Log in", menu: "Menu", close: "Close", language: "Language" },
     login: {
       title: "Log in",
       body: "Your nutrition log stays on this device. Enter an email to continue into your personal health plan.",
@@ -104,6 +105,7 @@ export const COPY: Record<Locale, Messages> = {
       add: "Add to commute plan",
       saved: "In your commute plan",
       matched: "Matched",
+      book: "Book this mealbox",
       alt: "Open bento on a mint background, sealed for the commute.",
     },
     footer:
@@ -124,7 +126,7 @@ export const COPY: Record<Locale, Messages> = {
   },
   "zh-CN": {
     meta: { title: "NutriGo · 沙田与九龙塘通勤营养" },
-    nav: { home: "首页", meals: "餐盒", data: "数据与目标", membership: "会员", login: "登录", menu: "菜单", close: "关闭", language: "语言" },
+    nav: { home: "首页", meals: "餐盒", data: "数据与目标", membership: "会员", membershipCenter: "订阅中心", login: "登录", menu: "菜单", close: "关闭", language: "语言" },
     login: {
       title: "登录",
       body: "营养记录保存在这台设备上。输入邮箱后即可进入你的个人健康计划。",
@@ -165,6 +167,7 @@ export const COPY: Record<Locale, Messages> = {
       add: "加入通勤计划",
       saved: "已在通勤计划中",
       matched: "已匹配",
+      book: "预订这个餐盒",
       alt: "薄荷色背景上的密封便当，适合通勤携带。",
     },
     footer: "NutriGo 是面向通勤人士的营养教育工具。数值来自内置食物表和 WHO/FAO 人群范围，不构成医疗诊断或个人饮食处方。",
@@ -230,7 +233,7 @@ export const COPY: Record<Locale, Messages> = {
   },
   "zh-HK": {
     meta: { title: "NutriGo · 沙田與九龍塘通勤營養" },
-    nav: { home: "首頁", meals: "餐盒", data: "數據與目標", membership: "會員", login: "登入", menu: "選單", close: "關閉", language: "語言" },
+    nav: { home: "首頁", meals: "餐盒", data: "數據與目標", membership: "會員", membershipCenter: "訂閱中心", login: "登入", menu: "選單", close: "關閉", language: "語言" },
     login: {
       title: "登入",
       body: "營養記錄保存在這部裝置上。輸入電郵後即可進入你的個人健康計劃。",
@@ -271,6 +274,7 @@ export const COPY: Record<Locale, Messages> = {
       add: "加入通勤計劃",
       saved: "已在通勤計劃中",
       matched: "已配對",
+      book: "預訂這個餐盒",
       alt: "薄荷綠背景上的密封便當，適合通勤攜帶。",
     },
     footer: "NutriGo 是面向通勤人士的營養教育工具。數值來自內置食物表和 WHO/FAO 人群範圍，不構成醫療診斷或個人飲食處方。",

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { latinClass, useI18n } from "../i18n/language";
 import { useStore } from "../state/store";
 import { NutriBunny } from "./NutriBunny";
@@ -7,7 +6,6 @@ import { Catalog } from "./ProductCard";
 export function HomePage() {
   const { dispatch } = useStore();
   const { locale, m } = useI18n();
-  const [joined, setJoined] = useState(false);
 
   function startAnalysis() {
     dispatch({ type: "nav", view: "calculator", step: 0 });
@@ -50,11 +48,13 @@ export function HomePage() {
           <div>
             <h2 className="font-serif text-3xl leading-snug text-[#1e3a32]">{m.membership.title}</h2>
             <p className="mt-3 max-w-xl text-sm leading-6 text-[#5c675f]">{m.membership.body}</p>
-            {joined && <p className="mt-3 text-sm font-semibold text-[#1e7a45]">{m.membership.joined}</p>}
           </div>
           <button
             type="button"
-            onClick={() => setJoined(true)}
+            onClick={() => {
+              dispatch({ type: "nav", view: "membership" });
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             className="mt-5 shrink-0 rounded-2xl bg-[#ff5a4a] px-5 py-4 text-left text-white sm:mt-0"
           >
             <span className="block text-sm font-black">{m.membership.cta}</span>

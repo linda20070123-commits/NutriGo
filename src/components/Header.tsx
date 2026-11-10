@@ -87,6 +87,9 @@ export function Header() {
             <button type="button" className={linkClass(onHome && homeSection === "membership")} onClick={() => goSection("membership")}>
               {m.nav.membership}
             </button>
+            <button type="button" className={linkClass(state.view === "membership")} onClick={() => goView("membership")}>
+              {m.nav.membershipCenter}
+            </button>
           </nav>
           <LanguageSwitcher />
           <button
@@ -119,6 +122,9 @@ export function Header() {
           </button>
           <button type="button" className="rounded-xl px-3 py-3 text-left text-sm font-semibold" onClick={() => goSection("membership")}>
             {m.nav.membership}
+          </button>
+          <button type="button" className="rounded-xl px-3 py-3 text-left text-sm font-semibold" onClick={() => goView("membership")}>
+            {m.nav.membershipCenter}
           </button>
           <button
             type="button"

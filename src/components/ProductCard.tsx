@@ -95,17 +95,26 @@ export function ProductCard({
           {text.pain}
         </p>
       </div>
-      <button
-        type="button"
-        onClick={() => dispatch({ type: "toggle-plan", id: product.id })}
-        className={`mt-5 w-full rounded-full px-4 py-3 text-sm font-semibold transition ${
-          saved
-            ? "bg-forest-700 text-white"
-            : "border border-forest-700 text-forest-800 hover:bg-forest-50"
-        }`}
-      >
-        {saved ? m.card.saved : m.card.add}
-      </button>
+      <div className="mt-4 space-y-2">
+        <button
+          type="button"
+          onClick={() => dispatch({ type: "toggle-plan", id: product.id })}
+          className={`w-full rounded-full px-4 py-3 text-sm font-semibold transition ${
+            saved
+              ? "bg-forest-700 text-white"
+              : "border border-forest-700 text-forest-800 hover:bg-forest-50"
+          }`}
+        >
+          {saved ? m.card.saved : m.card.add}
+        </button>
+        <button
+          type="button"
+          onClick={() => dispatch({ type: "open-booking", productId: product.id })}
+          className="w-full rounded-full bg-coral-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-coral-600"
+        >
+          {m.card.book}
+        </button>
+      </div>
       </div>
     </article>
   );

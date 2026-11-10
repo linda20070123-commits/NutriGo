@@ -8,7 +8,7 @@ export type HealthGoal = "lose" | "maintain" | "gain" | "wellness";
 
 export type MealOccasion = "daily" | "breakfast" | "lunch" | "dinner" | "afternoon";
 
-export type View = "home" | "calculator" | "bmi" | "report";
+export type View = "home" | "calculator" | "bmi" | "report" | "membership";
 
 export type SugarKind = "none" | "added" | "intrinsic";
 
@@ -146,3 +146,94 @@ export interface ProductMatch {
   product: Product;
   reasons: string[];
 }
+
+/* ------------------------------------------------------------------ */
+/* Membership & meal booking                                           */
+/* ------------------------------------------------------------------ */
+
+/** A single bookable dish inside a SilentBite box. */
+export interface MealItem {
+  id: string;
+  /** English dish name. Localized variants live in the i18n tables. */
+  name: string;
+  /** Short description of the dish for the picker. */
+  note: string;
+  kcal: number;
+  /** Grams of dietary fiber. */
+  fiber: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+/** A bookable box: a headline dish plus the sides that travel with it. */
+export interface MealBox {
+  id: string;
+  /** Matches the Product id so existing cards can open the booking modal. */
+  productId: string;
+  title: string;
+  image: string;
+  kcal: number;
+  protein: number;
+  fiber: number;
+  /** The default dish, plus swappable variations for step 2. */
+  variants: MealItem[];
+  /** Sides and extras that are part of the box. */
+  ingredients: string[];
+}
+
+/** Where the member currently sits in the subscription lifecycle. */
+export type SubscriptionTier = "none" | "trial" | "vip";
+
+export interface SubscriptionStatus {
+  tier: SubscriptionTier;
+  /** ISO timestamp for when the current period ends. */
+  startedAt: string | null;
+  expiresAt: string | null;
+}
+
+/** Milestone tracking for the 10/20 mealbox reward system. */
+export interface RewardProgress {
+  /** Mealboxes accumulated towards the next milestone. */
+  boxes: number;
+  /** HK$ value of the next milestone coupon. */
+  nextMilestone: 10 | 20;
+  /** HK$ value of the next coupon after `nextMilestone`. */
+  nextValue: number;
+  /** HK$ value already unlocked. */
+  unlockedValue: number;
+  /** Milestones the member has already reached. */
+  unlockedMilestones: number[];
+}
+
+/** How often the member wants boxes delivered. */
+export type PlanFrequency = "weekly" | "monthly";
+
+export interface BookingPlan {
+  frequency: PlanFrequency;
+  /** Number of boxes per delivery cycle. */
+  quantity: number;
+  /** HK$ per box before any member discount. */
+  unitPrice: number;
+  /** HK$ taken off the subtotal by membership benefits. */
+  discount: number;
+}
+
+export interface BookingModalProps {
+  /** The box being booked. Null when the modal is closed. */
+  meal: MealBox | null;
+  onClose: () => void;
+  onConfirm: (booking: BookingSelection) => void;
+}
+
+/** Everything the checkout summary needs to render. */
+export interface BookingSelection {
+  meal: MealBox;
+  item: MealItem;
+  plan: BookingPlan;
+  subtotal: number;
+  total: number;
+  rewardBoxesBefore: number;
+  rewardBoxesAfter: number;
+}
+

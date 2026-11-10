@@ -1,6 +1,17 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, type Dispatch, type ReactNode } from "react";
 import { ALL_FOODS } from "../data/foods";
-import type { ActivityLevel, BodyMetrics, FoodInput, HealthGoal, MealOccasion, UnitId, View } from "../types";
+import { normalizeSubscription, rewardProgress, startTrial, startVip } from "../lib/membership";
+import type {
+  ActivityLevel,
+  BodyMetrics,
+  FoodInput,
+  HealthGoal,
+  MealOccasion,
+  RewardProgress,
+  SubscriptionStatus,
+  UnitId,
+  View,
+} from "../types";
 
 const STORAGE_KEY = "nutrigo-state-v1";
 const QUANTITY_VERSION = 2;
@@ -14,6 +25,12 @@ export interface AppState {
   plan: string[];
   quantityVersion: number;
   completedAt: number | null;
+  /** Membership tier and its validity window. */
+  subscription: SubscriptionStatus;
+  /** Mealboxes accumulated towards the 10/20 reward milestones. */
+  rewardBoxes: number;
+  /** Product id currently open in the meal booking modal. */
+  bookingProductId: string | null;
 }
 
 type Action =
@@ -25,7 +42,12 @@ type Action =
   | { type: "preset" }
   | { type: "reset-intake" }
   | { type: "body"; patch: Partial<BodyMetrics> }
-  | { type: "toggle-plan"; id: string };
+  | { type: "toggle-plan"; id: string }
+  | { type: "subscribe"; tier: "trial" | "vip" }
+  | { type: "cancel-subscription" }
+  | { type: "open-booking"; productId: string }
+  | { type: "close-booking" }
+  | { type: "confirm-booking"; boxes: number };
 
 const SAMPLE: Record<string, FoodInput> = {
   rice: { quantity: "2", unit: "fist" },
@@ -60,6 +82,9 @@ function initialState(): AppState {
     plan: [],
     quantityVersion: QUANTITY_VERSION,
     completedAt: null,
+    subscription: { tier: "none", startedAt: null, expiresAt: null },
+    rewardBoxes: 0,
+    bookingProductId: null,
   };
 }
 
@@ -108,6 +133,23 @@ function reducer(state: AppState, action: Action): AppState {
         : [...state.plan, action.id];
       return { ...state, plan };
     }
+    case "subscribe": {
+      const subscription = action.tier === "trial" ? startTrial() : startVip();
+      return { ...state, subscription };
+    }
+    case "cancel-subscription":
+      return { ...state, subscription: { tier: "none", startedAt: null, expiresAt: null } };
+    case "open-booking":
+      return { ...state, bookingProductId: action.productId };
+    case "close-booking":
+      return { ...state, bookingProductId: null };
+    case "confirm-booking":
+      return {
+        ...state,
+        // The modal stays open so it can show the confirmation state; the
+        // caller closes it explicitly once the member has read it.
+        rewardBoxes: state.rewardBoxes + action.boxes,
+      };
     default:
       return state;
   }
@@ -118,7 +160,7 @@ function isOccasion(value: unknown): value is MealOccasion {
 }
 
 function isView(value: unknown): value is View {
-  return value === "home" || value === "calculator" || value === "bmi" || value === "report";
+  return value === "home" || value === "calculator" || value === "bmi" || value === "report" || value === "membership";
 }
 
 function isActivity(value: unknown): value is ActivityLevel {
@@ -164,15 +206,41 @@ function hydrate(): AppState {
       },
       plan: Array.isArray(saved.plan) ? saved.plan.filter((id) => typeof id === "string") : [],
       completedAt: null,
+      subscription: normalizeSubscription(readSubscription(saved.subscription)),
+      rewardBoxes:
+        typeof saved.rewardBoxes === "number" && Number.isFinite(saved.rewardBoxes) && saved.rewardBoxes > 0
+          ? Math.floor(saved.rewardBoxes)
+          : 0,
+      bookingProductId: null,
     };
   } catch {
     return base;
   }
 }
 
+function readSubscription(value: unknown): SubscriptionStatus {
+  if (!value || typeof value !== "object") {
+    return { tier: "none", startedAt: null, expiresAt: null };
+  }
+  const candidate = value as Partial<SubscriptionStatus>;
+  const tier = candidate.tier;
+  if (tier !== "trial" && tier !== "vip") {
+    return { tier: "none", startedAt: null, expiresAt: null };
+  }
+  return {
+    tier,
+    startedAt: typeof candidate.startedAt === "string" ? candidate.startedAt : null,
+    expiresAt: typeof candidate.expiresAt === "string" ? candidate.expiresAt : null,
+  };
+}
+
 interface StoreValue {
   state: AppState;
   dispatch: Dispatch<Action>;
+  /** The subscription with expired tiers already normalised away. */
+  subscription: SubscriptionStatus;
+  /** Reward tracker derived from the accumulated mealbox count. */
+  rewards: RewardProgress;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -184,7 +252,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
-  const value = useMemo(() => ({ state, dispatch }), [state]);
+  const value = useMemo(
+    () => ({
+      state,
+      dispatch,
+      subscription: normalizeSubscription(state.subscription),
+      rewards: rewardProgress(state.rewardBoxes),
+    }),
+    [state],
+  );
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
 
