@@ -45,6 +45,8 @@ export interface CommerceCopy {
     calories: string;
     protein: string;
     fiber: string;
+    /** Label for the per-box unit price shown next to the chosen dish. */
+    priceLabel: string;
     ingredients: string;
     selectDish: string;
     planA: { title: string; detail: string; price: string; note: string };
@@ -100,7 +102,7 @@ const en: CommerceCopy = {
     expires: "Your membership ended on {date}.",
     expired: "Your membership has expired. Renew to get the member rate back.",
     planTitle: "Monthly VIP membership",
-    price: "HK$60 / month",
+    price: "HK$70 / month",
     priceNote: "Cancel any time. The first week is on us.",
     perks: {
       calc: "🔓 Full access to advanced nutrition calculations & “Nutri-Bunny” AI assistant interactive dialogues.",
@@ -114,7 +116,7 @@ const en: CommerceCopy = {
     rewardUnlocked: "HK${value} unlocked",
     rewardNext: "Next milestone: {boxes} boxes → HK${value} coupon",
     ctaTrial: "Start Your 1-Week Free Trial",
-    ctaVip: "Upgrade to Monthly VIP ($60/mo)",
+    ctaVip: "Upgrade to Monthly VIP ($70/mo)",
     ctaManage: "Manage membership",
     cancel: "Cancel membership",
     confirmed: "Membership updated on this device.",
@@ -131,19 +133,20 @@ const en: CommerceCopy = {
     calories: "Calories",
     protein: "Protein",
     fiber: "Fiber",
+    priceLabel: "Price",
     ingredients: "In the box",
     selectDish: "Choose a dish for this box",
     planA: {
       title: "Flexible weekly",
       detail: "Twice a week (2 meals/week)",
       price: "HK$70 / box",
-      note: "Price range HK$65 – HK$75 per box, depending on the dish.",
+      note: "Price range HK$65 – HK$80 per box, depending on the dish.",
     },
     planB: {
       title: "Monthly value bundle",
       detail: "15 mealboxes / month",
       price: "HK$70 / box",
-      note: "Recommended business plan. Includes an extra member discount on every box.",
+      note: "Recommended business plan. Price range HK$65 – HK$80 per box, with an extra member discount on every box.",
       recommended: "Recommended",
     },
     perBox: "per box",
@@ -202,7 +205,7 @@ const zhCN: CommerceCopy = {
     expires: "你的会员已于 {date} 结束。",
     expired: "你的会员已到期。续订即可恢复会员价。",
     planTitle: "月度 VIP 会员",
-    price: "HK$60 / 月",
+    price: "HK$70 / 月",
     priceNote: "随时可以取消。第一星期由我们承担。",
     perks: {
       calc: "🔓 完整使用进阶营养计算与「营养兔兔」AI 助手互动对话。",
@@ -216,7 +219,7 @@ const zhCN: CommerceCopy = {
     rewardUnlocked: "已解锁 HK${value}",
     rewardNext: "下一个里程碑：{boxes} 份餐盒 → HK${value} 优惠券",
     ctaTrial: "开始 1 星期免费试用",
-    ctaVip: "升级月度 VIP（HK$60/月）",
+    ctaVip: "升级月度 VIP（HK$70/月）",
     ctaManage: "管理会员",
     cancel: "取消会员",
     confirmed: "会员状态已在这台设备上更新。",
@@ -233,19 +236,20 @@ const zhCN: CommerceCopy = {
     calories: "热量",
     protein: "蛋白质",
     fiber: "纤维",
+    priceLabel: "价格",
     ingredients: "盒内内容",
     selectDish: "为这份餐盒选择主菜",
     planA: {
       title: "灵活每周方案",
       detail: "每周两次（2 份/周）",
       price: "HK$70 / 份",
-      note: "每份 HK$65 – HK$75，视菜品而定。",
+      note: "每份 HK$65 – HK$80，视菜品而定。",
     },
     planB: {
       title: "月度价值套餐",
       detail: "15 份餐盒 / 月",
       price: "HK$70 / 份",
-      note: "推荐商业方案。每份餐盒另有会员优惠。",
+      note: "推荐商业方案。每份 HK$65 – HK$80，视菜品而定，且每份餐盒另有会员优惠。",
       recommended: "推荐",
     },
     perBox: "每份",
@@ -303,7 +307,7 @@ const zhHK: CommerceCopy = {
     expires: "你的會員已於 {date} 結束。",
     expired: "你的會員已到期。續訂即可恢復會員價。",
     planTitle: "月度 VIP 會員",
-    price: "HK$60 / 月",
+    price: "HK$70 / 月",
     priceNote: "隨時可以取消。第一星期由我們承擔。",
     perks: {
       calc: "🔓 完整使用進階營養計算與「營養兔兔」AI 助手互動對話。",
@@ -317,7 +321,7 @@ const zhHK: CommerceCopy = {
     rewardUnlocked: "已解鎖 HK${value}",
     rewardNext: "下一個里程碑：{boxes} 份餐盒 → HK${value} 優惠券",
     ctaTrial: "開始 1 星期免費試用",
-    ctaVip: "升級月度 VIP（HK$60/月）",
+    ctaVip: "升級月度 VIP（HK$70/月）",
     ctaManage: "管理會員",
     cancel: "取消會員",
     confirmed: "會員狀態已在這部裝置上更新。",
@@ -334,19 +338,20 @@ const zhHK: CommerceCopy = {
     calories: "熱量",
     protein: "蛋白質",
     fiber: "纖維",
+    priceLabel: "價格",
     ingredients: "盒內內容",
     selectDish: "為這份餐盒選擇主菜",
     planA: {
       title: "靈活每週方案",
       detail: "每週兩次（2 份/週）",
       price: "HK$70 / 份",
-      note: "每份 HK$65 – HK$75，視菜品而定。",
+      note: "每份 HK$65 – HK$80，視菜品而定。",
     },
     planB: {
       title: "月度價值套餐",
       detail: "15 份餐盒 / 月",
       price: "HK$70 / 份",
-      note: "推薦商業方案。每份餐盒另有會員優惠。",
+      note: "推薦商業方案。每份 HK$65 – HK$80，視菜品而定，且每份餐盒另有會員優惠。",
       recommended: "推薦",
     },
     perBox: "每份",

@@ -1,3 +1,4 @@
+import { mealBoxByProductId, mealBoxPriceRange } from "../data/mealBoxes";
 import { PRODUCTS } from "../data/products";
 import type { MealCopy } from "../i18n/copy";
 import { latinClass, useI18n } from "../i18n/language";
@@ -26,6 +27,13 @@ export function ProductCard({
     sugarNote: product.sugarNote,
     ingredients: product.ingredients,
   };
+
+  // Price range for the dishes this box can ship with.
+  const box = mealBoxByProductId(product.id);
+  const priceRange = box ? mealBoxPriceRange(box) : null;
+  const priceHint = priceRange
+    ? m.card.priceHint.replace("{min}", String(priceRange.min)).replace("{max}", String(priceRange.max))
+    : null;
 
   return (
     <article
@@ -73,6 +81,9 @@ export function ProductCard({
           </div>
         ))}
       </dl>
+      {priceHint && (
+        <p className={`mt-3 text-xs font-semibold text-forest-800 ${latinClass(locale)}`}>{priceHint}</p>
+      )}
       <p className="mt-3 text-xs leading-5 text-mute">{text.sugarNote}</p>
       <div className="mt-4">
         <p className={`text-xs font-semibold text-mute ${latinClass(locale)}`}>{m.card.inBox}</p>

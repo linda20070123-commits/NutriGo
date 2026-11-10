@@ -20,6 +20,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "protein-garlic-chicken",
         name: "Slow-cooked garlic chicken breast",
         note: "Braised chicken breast with a light garlic glaze",
+        price: 68,
         kcal: 480,
         fiber: 6,
         protein: 38,
@@ -30,6 +31,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "protein-lean-chicken-salad",
         name: "Lean chicken breast salad",
         note: "Cold chicken with greens and a yogurt dressing",
+        price: 68,
         kcal: 410,
         fiber: 8,
         protein: 40,
@@ -40,6 +42,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "protein-seared-salmon",
         name: "Seared salmon & quinoa",
         note: "Salmon fillet over quinoa with charred greens",
+        price: 80,
         kcal: 520,
         fiber: 7,
         protein: 42,
@@ -62,6 +65,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "vitamin-bell-pepper-chicken",
         name: "Stir-fried chicken with bell peppers and onion",
         note: "Colour-forward stir-fry with brown rice",
+        price: 68,
         kcal: 510,
         fiber: 7,
         protein: 28,
@@ -72,6 +76,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "vitamin-kiwi-chicken",
         name: "Roast chicken with kiwi & greens",
         note: "Grilled chicken with kiwi and blanched greens",
+        price: 70,
         kcal: 460,
         fiber: 9,
         protein: 30,
@@ -82,6 +87,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "vitamin-teriyaki-tofu",
         name: "Teriyaki tofu with mixed peppers",
         note: "Firm tofu glazed with a light teriyaki",
+        price: 65,
         kcal: 480,
         fiber: 9,
         protein: 24,
@@ -104,6 +110,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "fiber-deep-sea-cod",
         name: "Deep-sea cod fillet",
         note: "Steamed cod over multi-grain rice",
+        price: 80,
         kcal: 490,
         fiber: 12,
         protein: 34,
@@ -114,6 +121,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "fiber-pumpkin-tofu",
         name: "Roasted pumpkin with tofu",
         note: "Tofu and pumpkin over multi-grain rice",
+        price: 65,
         kcal: 470,
         fiber: 14,
         protein: 28,
@@ -124,6 +132,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "fiber-chicken-quinoa",
         name: "Chicken breast with quinoa & kale",
         note: "Grilled chicken, quinoa, and a kale salad",
+        price: 72,
         kcal: 500,
         fiber: 11,
         protein: 36,
@@ -146,6 +155,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "balanced-teriyaki-chicken",
         name: "Japanese-style teriyaki chicken thigh",
         note: "Grilled teriyaki chicken with multigrain rice",
+        price: 70,
         kcal: 560,
         fiber: 6,
         protein: 26,
@@ -156,6 +166,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "balanced-steamed-cod",
         name: "Steamed cod with kelp",
         note: "Steamed cod, steamed egg, and kelp knots",
+        price: 78,
         kcal: 480,
         fiber: 7,
         protein: 32,
@@ -166,6 +177,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "balanced-chicken-quinoa",
         name: "Grilled chicken with quinoa",
         note: "Lean chicken, quinoa, and a sesame salad",
+        price: 72,
         kcal: 520,
         fiber: 8,
         protein: 33,
@@ -188,6 +200,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "lean-pan-seared-chicken",
         name: "Oil-free pan-seared chicken breast",
         note: "Chicken breast with konjac noodles",
+        price: 65,
         kcal: 310,
         fiber: 8,
         protein: 48,
@@ -198,6 +211,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "lean-seared-salmon",
         name: "Seared salmon & quinoa",
         note: "Salmon with konjac noodles and greens",
+        price: 80,
         kcal: 350,
         fiber: 9,
         protein: 44,
@@ -208,6 +222,7 @@ export const MEAL_BOXES: MealBox[] = [
         id: "lean-chicken-cod",
         name: "Deep-sea cod with greens",
         note: "Steamed cod, konjac noodles, and lettuce",
+        price: 78,
         kcal: 300,
         fiber: 9,
         protein: 46,
@@ -221,4 +236,13 @@ export const MEAL_BOXES: MealBox[] = [
 
 export function mealBoxByProductId(productId: string): MealBox | undefined {
   return MEAL_BOXES.find((box) => box.productId === productId);
+}
+
+/**
+ * The lowest and highest unit price across a box's dishes, in HK$. Used for
+ * the price range shown on cards before a specific dish is chosen.
+ */
+export function mealBoxPriceRange(box: MealBox): { min: number; max: number } {
+  const prices = box.variants.map((variant) => variant.price);
+  return { min: Math.min(...prices), max: Math.max(...prices) };
 }

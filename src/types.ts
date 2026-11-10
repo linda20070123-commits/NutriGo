@@ -158,6 +158,8 @@ export interface MealItem {
   name: string;
   /** Short description of the dish for the picker. */
   note: string;
+  /** Unit price of this dish per box, in HK$. */
+  price: number;
   kcal: number;
   /** Grams of dietary fiber. */
   fiber: number;

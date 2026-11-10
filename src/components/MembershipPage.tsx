@@ -1,6 +1,6 @@
 import { COMMERCE } from "../i18n/commerce";
 import { latinClass, useI18n } from "../i18n/language";
-import { BOX_PRICE, MEMBERSHIP_PRICE, REWARD_MILESTONES, REWARD_VALUES } from "../lib/membership";
+import { BOX_PRICE, BOX_PRICE_RANGE, MEMBERSHIP_PRICE, MEMBER_BOX_DISCOUNT, REWARD_MILESTONES, REWARD_VALUES } from "../lib/membership";
 import { useStore } from "../state/store";
 import type { RewardProgress, SubscriptionTier } from "../types";
 
@@ -176,9 +176,17 @@ export function MembershipPage() {
               </tr>
               <tr className="border-b border-sand-100">
                 <td className="py-3 pr-3 font-medium">{c.compareRows.discount}</td>
-                <td className="py-3 pr-3">HK${BOX_PRICE}</td>
-                <td className="py-3 pr-3">HK${BOX_PRICE - 5}</td>
-                <td className="py-3">HK${BOX_PRICE - 5}</td>
+                <td className="py-3 pr-3">
+                  HK${BOX_PRICE_RANGE.min}–{BOX_PRICE_RANGE.max}
+                </td>
+                <td className="py-3 pr-3">
+                  HK${BOX_PRICE_RANGE.min - MEMBER_BOX_DISCOUNT}–
+                  {BOX_PRICE_RANGE.max - MEMBER_BOX_DISCOUNT}
+                </td>
+                <td className="py-3">
+                  HK${BOX_PRICE_RANGE.min - MEMBER_BOX_DISCOUNT}–
+                  {BOX_PRICE_RANGE.max - MEMBER_BOX_DISCOUNT}
+                </td>
               </tr>
               <tr className="border-b border-sand-100">
                 <td className="py-3 pr-3 font-medium">{c.compareRows.priority}</td>
@@ -223,7 +231,9 @@ function RewardBar({ rewards }: { rewards: RewardProgress }) {
 }
 
 function membershipFootnote(locale: string, membership: number, box: number): string {
-  if (locale === "zh-CN") return `会员费 HK$${membership}／月，每份餐盒 HK$${box}，会员再减 HK$5。`;
-  if (locale === "zh-HK") return `會員費 HK$${membership}／月，每份餐盒 HK$${box}，會員再減 HK$5。`;
-  return `Membership HK$${membership}/month. Each mealbox is HK$${box}, and members pay HK$5 less per box.`;
+  if (locale === "zh-CN")
+    return `会员费 HK$${membership}／月，每份餐盒 HK$${box}（视菜品而定，价格区间 HK$65 – HK$80），会员再减 HK$5。`;
+  if (locale === "zh-HK")
+    return `會員費 HK$${membership}／月，每份餐盒 HK$${box}（視菜品而定，價格區間 HK$65 – HK$80），會員再減 HK$5。`;
+  return `Membership HK$${membership}/month. Each mealbox is HK$${box} on average (price range HK$65 – HK$80 depending on the dish), and members pay HK$5 less per box.`;
 }

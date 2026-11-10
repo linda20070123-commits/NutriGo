@@ -27,6 +27,8 @@ export interface Messages {
     inBox: string;
     forWhom: string;
     snag: string;
+    /** Price hint shown on a meal card, e.g. "Price HK$65 – HK$80 per box". */
+    priceHint: string;
     add: string;
     saved: string;
     matched: string;
@@ -102,6 +104,7 @@ export const COPY: Record<Locale, Messages> = {
       inBox: "In the box",
       forWhom: "For whom.",
       snag: "The usual snag.",
+      priceHint: "Price HK${min} – HK${max} per box",
       add: "Add to commute plan",
       saved: "In your commute plan",
       matched: "Matched",
@@ -164,6 +167,7 @@ export const COPY: Record<Locale, Messages> = {
       inBox: "盒内",
       forWhom: "适合谁。",
       snag: "常见问题。",
+      priceHint: "价格 HK${min} – HK${max} / 份",
       add: "加入通勤计划",
       saved: "已在通勤计划中",
       matched: "已匹配",
@@ -271,6 +275,7 @@ export const COPY: Record<Locale, Messages> = {
       inBox: "盒內",
       forWhom: "適合誰。",
       snag: "常見問題。",
+      priceHint: "價格 HK${min} – HK${max} / 份",
       add: "加入通勤計劃",
       saved: "已在通勤計劃中",
       matched: "已配對",

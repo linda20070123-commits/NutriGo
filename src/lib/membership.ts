@@ -1,11 +1,14 @@
 import type { BookingPlan, PlanFrequency, RewardProgress, SubscriptionStatus } from "../types";
 
-/** Standard price for a single mealbox, in HK$. */
+/**
+ * Baseline price for a single mealbox, in HK$. Used as the average reference
+ * for preview stages where no specific dish has been chosen yet.
+ */
 export const BOX_PRICE = 70;
 /** Price range shown to members, in HK$. */
-export const BOX_PRICE_RANGE = { min: 65, max: 75 };
+export const BOX_PRICE_RANGE = { min: 65, max: 80 };
 /** Monthly VIP membership, in HK$. */
-export const MEMBERSHIP_PRICE = 60;
+export const MEMBERSHIP_PRICE = 70;
 /** Length of the free trial, in days. */
 export const TRIAL_DAYS = 7;
 /** Milestones for the reward system, in boxes. */
@@ -97,6 +100,14 @@ export function buildPlan(frequency: PlanFrequency, subscription: SubscriptionSt
     unitPrice: base.unitPrice,
     discount: discount * base.boxes,
   };
+}
+
+/**
+ * Resolves the unit price for a box: the exact dish price when a dish has been
+ * chosen, otherwise the average baseline price.
+ */
+export function unitPriceFor(dishPrice?: number): number {
+  return typeof dishPrice === "number" && Number.isFinite(dishPrice) ? dishPrice : BOX_PRICE;
 }
 
 /**

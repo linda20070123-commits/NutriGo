@@ -3,7 +3,7 @@ import { BOX_INGREDIENTS, COMMERCE, DISH_NAMES } from "../i18n/commerce";
 import { latinClass, useI18n } from "../i18n/language";
 import { parseBody } from "../lib/body";
 import { kcal } from "../lib/format";
-import { buildPlan, discountFor, REWARD_MILESTONES, REWARD_VALUES } from "../lib/membership";
+import { buildPlan, discountFor, REWARD_MILESTONES, REWARD_VALUES, unitPriceFor } from "../lib/membership";
 import { countMeals, mealsForType, resolveWindows } from "../lib/schedule";
 import { useStore } from "../state/store";
 import type {
@@ -29,6 +29,9 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
   const [step, setStep] = useState<Step>(1);
   const [frequency, setFrequency] = useState<PlanFrequency>("monthly");
   const [variantId, setVariantId] = useState<string>(meal?.variants[0]?.id ?? "");
+  // Whether the member has explicitly picked a dish. Until then the order is
+  // priced at the average baseline, not at whichever dish happens to be first.
+  const [dishPicked, setDishPicked] = useState(false);
   const [done, setDone] = useState(false);
   // Snapshot of the reward numbers taken when the order is confirmed, so the
   // success screen is not recomputed against the already-updated store.
@@ -76,6 +79,7 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
     setStep(1);
     setFrequency("monthly");
     setVariantId(meal.variants[0]?.id ?? "");
+    setDishPicked(false);
     setDone(false);
     setConfirmed(null);
     setWindowId("current");
@@ -109,7 +113,10 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
   // The schedule drives the price: every selected day contributes one box for
   // lunch or dinner, and two for "both".
   const totalMealCount = countMeals(schedule);
-  const subtotal = totalMealCount * plan.unitPrice;
+  // Once a dish is chosen the order is priced at that dish's own unit price;
+  // before that the average baseline price applies.
+  const unitPrice = unitPriceFor(dishPicked ? item?.price : undefined);
+  const subtotal = totalMealCount * unitPrice;
   const memberDiscount = totalMealCount * discountFor(subscription);
 
   // TDEE context for the macro sync panel.
@@ -186,7 +193,9 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
     const selection: BookingSelection = {
       meal: activeMeal,
       item: activeItem,
-      plan,
+      // The plan carries the price actually applied, so the booked selection
+      // carries the chosen dish's unit price rather than the baseline.
+      plan: { ...plan, unitPrice },
       subtotal,
       total: subtotal - memberDiscount,
       rewardBoxesBefore,
@@ -295,6 +304,7 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
                     [c.calories, kcal(activeItem.kcal)],
                     [c.protein, `${activeItem.protein} g`],
                     [c.fiber, `${activeItem.fiber} g`],
+                    [c.priceLabel, `HK$${activeItem.price}`],
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-xl bg-white px-2.5 py-1.5 text-center">
                       <dt className="text-[10px] text-mute uppercase">{label}</dt>
@@ -484,7 +494,10 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
                       <button
                         key={variant.id}
                         type="button"
-                        onClick={() => setVariantId(variant.id)}
+                        onClick={() => {
+                          setVariantId(variant.id);
+                          setDishPicked(true);
+                        }}
                         className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition ${
                           active ? "border-forest-600 bg-forest-50" : "border-sand-200 bg-white hover:bg-sand-50"
                         }`}
@@ -504,6 +517,9 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
                         <span className="shrink-0 text-right text-xs text-mute">
                           <span className="block font-bold text-forest-800">{kcal(variant.kcal)}</span>
                           <span className="block">{variant.fiber} g fiber</span>
+                          <span className="mt-1 block font-semibold text-forest-700">
+                            HK${variant.price}
+                          </span>
                         </span>
                       </button>
                     );
@@ -555,7 +571,7 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
                 <h3 className="font-serif text-xl text-forest-900">{c.summaryTitle}</h3>
 
                 <dl className="mt-4 divide-y divide-sand-200 rounded-2xl bg-white px-4">
-                  <Row label={`${totalMealCount} × HK$${plan.unitPrice}`} value={`HK$${subtotal}`} />
+                  <Row label={`${totalMealCount} × HK$${unitPrice}`} value={`HK$${subtotal}`} />
                   <Row
                     label={c.memberDiscount}
                     value={`−HK$${memberDiscount}`}
