@@ -24,6 +24,8 @@ function Shell() {
         {state.view === "membership" && <MembershipPage />}
       </main>
       <Footer />
+      {/* Always mounted so that reopening the same box resets the flow: the
+          modal sees `meal` go from null back to a box and clears its state. */}
       <MealBookingModal
         meal={bookingMeal}
         onClose={() => dispatch({ type: "close-booking" })}

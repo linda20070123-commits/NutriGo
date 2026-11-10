@@ -219,6 +219,42 @@ export interface BookingPlan {
   discount: number;
 }
 
+/* ------------------------------------------------------------------ */
+/* Booking windows & the day / meal-time matrix                        */
+/* ------------------------------------------------------------------ */
+
+/** Which meal sessions a single date is booked for. */
+export type MealType = "lunch" | "dinner" | "both";
+
+/** One row of the schedule matrix. */
+export interface DaySchedule {
+  /** Localized day name, e.g. "Thursday". */
+  dateStr: string;
+  /** Day of week, 0 = Sunday .. 6 = Saturday. */
+  dayOfWeek: number;
+  /** Whether the member has booked this date at all. */
+  selected: boolean;
+  /** Which sessions are booked on this date. */
+  mealType: MealType;
+}
+
+/** One of the two fixed weekly ordering windows. */
+export interface BookingWindow {
+  /** "A" is the Wednesday cutoff, "B" is the Sunday cutoff. */
+  id: "A" | "B";
+  /** Days this window can deliver, as weekday numbers. */
+  days: number[];
+  /** The weekday the order has to be placed by. */
+  cutoffDay: number;
+}
+
+/** A window together with the resolved dates it covers. */
+export interface WindowDates {
+  window: BookingWindow;
+  /** Dates available in this window, already resolved against today. */
+  dates: { dateStr: string; dayOfWeek: number; date: Date }[];
+}
+
 export interface BookingModalProps {
   /** The box being booked. Null when the modal is closed. */
   meal: MealBox | null;
@@ -235,5 +271,9 @@ export interface BookingSelection {
   total: number;
   rewardBoxesBefore: number;
   rewardBoxesAfter: number;
+  /** The dates and sessions the member actually booked. */
+  schedule: DaySchedule[];
+  /** Total number of mealboxes the schedule adds up to. */
+  totalMealCount: number;
 }
 

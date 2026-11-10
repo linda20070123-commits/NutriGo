@@ -3,11 +3,23 @@ import { BOX_INGREDIENTS, COMMERCE, DISH_NAMES } from "../i18n/commerce";
 import { latinClass, useI18n } from "../i18n/language";
 import { parseBody } from "../lib/body";
 import { kcal } from "../lib/format";
-import { buildPlan, REWARD_MILESTONES, REWARD_VALUES } from "../lib/membership";
+import { buildPlan, discountFor, REWARD_MILESTONES, REWARD_VALUES } from "../lib/membership";
+import { countMeals, mealsForType, resolveWindows } from "../lib/schedule";
 import { useStore } from "../state/store";
-import type { BookingModalProps, BookingSelection, MealBox, MealItem, PlanFrequency } from "../types";
+import type {
+  BookingModalProps,
+  BookingSelection,
+  DaySchedule,
+  MealBox,
+  MealItem,
+  MealType,
+  PlanFrequency,
+} from "../types";
 
 type Step = 1 | 2 | 3;
+
+/** Which of the two windows the member is looking at. */
+type WindowId = "current" | "next";
 
 export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps) {
   const { state, dispatch, subscription, rewards } = useStore();
@@ -17,22 +29,60 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
   const [step, setStep] = useState<Step>(1);
   const [frequency, setFrequency] = useState<PlanFrequency>("monthly");
   const [variantId, setVariantId] = useState<string>(meal?.variants[0]?.id ?? "");
-  const [quantity, setQuantity] = useState(1);
   const [done, setDone] = useState(false);
   // Snapshot of the reward numbers taken when the order is confirmed, so the
   // success screen is not recomputed against the already-updated store.
   const [confirmed, setConfirmed] = useState<{ boxes: number; value: number } | null>(null);
 
-  // Reset the flow whenever a new box is opened.
+  // The two booking windows, resolved against today.
+  const windows = useMemo(() => resolveWindows(new Date()), []);
+  const [windowId, setWindowId] = useState<WindowId>("current");
+  const activeWindow = windowId === "current" ? windows.current : windows.next;
+
+  // The schedule for whichever window is on screen, keyed by weekday so that
+  // switching windows keeps each window's own selections.
+  const [schedules, setSchedules] = useState<Record<string, DaySchedule[]>>({});
+
+  // Merge the stored selections onto the active window's dates, so the matrix
+  // always has one row per available date even before anything is picked.
+  const schedule = useMemo(
+    () =>
+      activeWindow.dates.map((date) => {
+        const stored = schedules[activeWindow.window.id]?.find(
+          (day) => day.dayOfWeek === date.dayOfWeek,
+        );
+        return (
+          stored ?? {
+            dateStr: c.dayNames[date.dayOfWeek],
+            dayOfWeek: date.dayOfWeek,
+            selected: false,
+            mealType: "both" as MealType,
+          }
+        );
+      }),
+    [activeWindow, schedules, c.dayNames],
+  );
+
+  // Reset the flow whenever the modal is opened. Keyed on the box id plus an
+  // open counter, so reopening the same box still starts a fresh flow.
+  const [openCount, setOpenCount] = useState(0);
+  useEffect(() => {
+    if (!meal) return;
+    setOpenCount((count) => count + 1);
+  }, [meal]);
+
   useEffect(() => {
     if (!meal) return;
     setStep(1);
     setFrequency("monthly");
     setVariantId(meal.variants[0]?.id ?? "");
-    setQuantity(1);
     setDone(false);
     setConfirmed(null);
-  }, [meal]);
+    setWindowId("current");
+    setSchedules({});
+    // `openCount` changes on every open, which is what forces the reset.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meal, openCount]);
 
   // Lock body scroll while the modal is open.
   useEffect(() => {
@@ -56,9 +106,11 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
 
   const plan = useMemo(() => buildPlan(frequency, subscription), [frequency, subscription]);
 
-  // The order buys `quantity` cycles of the plan, so the subtotal multiplies out.
-  const subtotal = plan.unitPrice * plan.quantity * quantity;
-  const memberDiscount = plan.discount * quantity;
+  // The schedule drives the price: every selected day contributes one box for
+  // lunch or dinner, and two for "both".
+  const totalMealCount = countMeals(schedule);
+  const subtotal = totalMealCount * plan.unitPrice;
+  const memberDiscount = totalMealCount * discountFor(subscription);
 
   // TDEE context for the macro sync panel.
   const body = parseBody(state.body);
@@ -66,7 +118,7 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
   const energyPct = budget && item ? Math.round((item.kcal / budget) * 100) : null;
 
   const rewardBoxesBefore = rewards.boxes;
-  const rewardBoxesAfter = rewardBoxesBefore + plan.quantity * quantity;
+  const rewardBoxesAfter = rewardBoxesBefore + totalMealCount;
   const unlockedNow = REWARD_MILESTONES.filter(
     (milestone) => rewardBoxesBefore < milestone && rewardBoxesAfter >= milestone,
   );
@@ -83,6 +135,53 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
   // The box name comes from the shared meal copy so it matches the catalogue card.
   const boxName = m.mealsById[activeMeal.productId]?.name ?? activeMeal.title;
 
+  /** Writes a new schedule for the active window. */
+  function updateSchedule(next: DaySchedule[]) {
+    setSchedules((previous) => ({ ...previous, [activeWindow.window.id]: next }));
+  }
+
+  /** Flips the checkbox on one date. */
+  function toggleDay(dayOfWeek: number) {
+    updateSchedule(
+      schedule.map((day) =>
+        day.dayOfWeek === dayOfWeek ? { ...day, selected: !day.selected } : day,
+      ),
+    );
+  }
+
+  /** Sets the meal session for one date, and selects the date if needed. */
+  function setMealType(dayOfWeek: number, mealType: MealType) {
+    updateSchedule(
+      schedule.map((day) =>
+        day.dayOfWeek === dayOfWeek ? { ...day, mealType, selected: true } : day,
+      ),
+    );
+  }
+
+  /** Books every date in the active window for lunch and dinner. */
+  function selectAll() {
+    updateSchedule(
+      schedule.map((day) => ({ ...day, selected: true, mealType: "both" as MealType })),
+    );
+  }
+
+  /** Books lunch only on the Monday-to-Friday dates. */
+  function weekdaysLunchOnly() {
+    updateSchedule(
+      schedule.map((day) => ({
+        ...day,
+        selected: day.dayOfWeek >= 1 && day.dayOfWeek <= 5,
+        mealType: "lunch" as MealType,
+      })),
+    );
+  }
+
+  function clearSelection() {
+    updateSchedule(
+      schedule.map((day) => ({ ...day, selected: false })),
+    );
+  }
+
   function confirm() {
     const selection: BookingSelection = {
       meal: activeMeal,
@@ -92,8 +191,10 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
       total: subtotal - memberDiscount,
       rewardBoxesBefore,
       rewardBoxesAfter,
+      schedule,
+      totalMealCount,
     };
-    dispatch({ type: "confirm-booking", boxes: plan.quantity * quantity });
+    dispatch({ type: "confirm-booking", boxes: totalMealCount });
     onConfirm(selection);
     setConfirmed({ boxes: rewardBoxesAfter, value: unlockedValue });
     setDone(true);
@@ -207,7 +308,7 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
               </div>
             </div>
 
-            {/* Step 1: plan */}
+            {/* Step 1: plan + schedule matrix */}
             {step === 1 && (
               <section className="px-5 py-6 sm:px-7">
                 <h3 className="font-serif text-xl text-forest-900">{c.steps.plan}</h3>
@@ -232,22 +333,141 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
                   />
                 </div>
 
-                <div className="mt-5 flex items-center gap-3 rounded-2xl bg-white px-4 py-3">
-                  <label className="text-sm font-semibold text-forest-900" htmlFor="booking-quantity">
-                    {c.quantity}
-                  </label>
-                  <input
-                    id="booking-quantity"
-                    type="number"
-                    min={1}
-                    max={6}
-                    value={quantity}
-                    onChange={(event) => setQuantity(Math.max(1, Math.min(6, Number(event.target.value) || 1)))}
-                    className="w-20 rounded-xl border border-sand-300 bg-sand-50 px-3 py-2 text-sm outline-none focus:border-forest-600"
-                  />
-                  <span className="text-xs text-mute">
-                    {plan.quantity} {c.boxesPerCycle}
-                  </span>
+                {/* Commute schedule matrix */}
+                <div className="mt-8">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="font-serif text-xl text-forest-900">{c.scheduleTitle}</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={selectAll}
+                        className="rounded-full border border-forest-600 px-3 py-1.5 text-xs font-semibold text-forest-800 transition hover:bg-forest-50"
+                      >
+                        {c.selectAll}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={weekdaysLunchOnly}
+                        className="rounded-full border border-forest-600 px-3 py-1.5 text-xs font-semibold text-forest-800 transition hover:bg-forest-50"
+                      >
+                        {c.weekdaysLunch}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={clearSelection}
+                        className="rounded-full border border-sand-300 bg-white px-3 py-1.5 text-xs font-semibold text-mute transition hover:bg-sand-50"
+                      >
+                        {c.clearSelection}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Window tabs */}
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    {(["current", "next"] as WindowId[]).map((id) => {
+                      const target = id === "current" ? windows.current : windows.next;
+                      const range = target.dates
+                        .map((date) => c.dayNames[date.dayOfWeek])
+                        .join(" ~ ");
+                      const active = windowId === id;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => setWindowId(id)}
+                          className={`rounded-2xl border px-3 py-2.5 text-left transition ${
+                            active
+                              ? "border-forest-600 bg-forest-50"
+                              : "border-sand-200 bg-white hover:bg-sand-50"
+                          }`}
+                        >
+                          <span className="block text-[11px] font-bold text-forest-800">
+                            {id === "current" ? c.windowCurrent : c.windowNext}
+                          </span>
+                          <span className="mt-0.5 block text-[11px] leading-4 text-mute">{range}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <p className="mt-2 inline-block rounded-full bg-sun-400/20 px-3 py-1 text-[11px] font-semibold text-amber-ink">
+                    {activeWindow.window.cutoffDay === 3 ? c.cutoffWed : c.cutoffSun}
+                  </p>
+
+                  {/* Day rows */}
+                  <ul className="mt-4 space-y-2">
+                    {activeWindow.dates.map((date) => {
+                      const row = schedule.find((day) => day.dayOfWeek === date.dayOfWeek);
+                      const selected = row?.selected ?? false;
+                      const mealType = row?.mealType ?? "both";
+                      const dayName = c.dayNames[date.dayOfWeek];
+                      const boxes = selected ? mealsForType(mealType) : 0;
+                      const dayDate = new Intl.DateTimeFormat(
+                        locale === "en" ? "en-HK" : locale,
+                        { day: "numeric", month: "short" },
+                      ).format(date.date);
+                      return (
+                        <li
+                          key={date.dayOfWeek}
+                          className={`rounded-2xl border px-4 py-3 transition ${
+                            selected ? "border-forest-600 bg-forest-50" : "border-sand-200 bg-white"
+                          }`}
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <label className="flex cursor-pointer items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() => toggleDay(date.dayOfWeek)}
+                                className="size-5 shrink-0 accent-[#1e7a45]"
+                                aria-label={dayName}
+                              />
+                              <span className="text-sm font-bold text-forest-900">{dayName}</span>
+                              <span className="text-[11px] text-mute">{dayDate}</span>
+                              {boxes > 0 && (
+                                <span className="rounded-full bg-forest-700 px-2 py-0.5 text-[10px] font-bold text-white">
+                                  {boxes} {c.perBox}
+                                </span>
+                              )}
+                            </label>
+
+                            <div
+                              className={`flex gap-1.5 ${selected ? "" : "pointer-events-none opacity-40"}`}
+                              role="group"
+                              aria-label={`${dayName} meal time`}
+                            >
+                              {(["lunch", "dinner", "both"] as MealType[]).map((option) => {
+                                const active = mealType === option;
+                                return (
+                                  <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => setMealType(date.dayOfWeek, option)}
+                                    aria-pressed={active}
+                                    className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
+                                      active
+                                        ? "border-forest-700 bg-forest-700 text-white"
+                                        : "border-sand-300 bg-white text-mute hover:bg-sand-50"
+                                    }`}
+                                  >
+                                    <span aria-hidden="true">{c.mealIcons[option]}</span>
+                                    {c.mealTypes[option]}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+
+                  {/* Reward note */}
+                  <p className="mt-4 rounded-2xl bg-forest-50 px-4 py-3 text-xs leading-5 text-forest-900">
+                    {c.rewardNote
+                      .replace("{n}", String(totalMealCount))
+                      .replace("{n}", String(totalMealCount))}
+                  </p>
                 </div>
               </section>
             )}
@@ -335,7 +555,7 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
                 <h3 className="font-serif text-xl text-forest-900">{c.summaryTitle}</h3>
 
                 <dl className="mt-4 divide-y divide-sand-200 rounded-2xl bg-white px-4">
-                  <Row label={`${plan.quantity} × HK$${plan.unitPrice}`} value={`HK$${subtotal}`} />
+                  <Row label={`${totalMealCount} × HK$${plan.unitPrice}`} value={`HK$${subtotal}`} />
                   <Row
                     label={c.memberDiscount}
                     value={`−HK$${memberDiscount}`}
@@ -350,10 +570,26 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
                   </p>
                 )}
 
+                {/* The booked schedule */}
+                {schedule.filter((day) => day.selected).length > 0 && (
+                  <ul className="mt-4 flex flex-wrap gap-2">
+                    {schedule
+                      .filter((day) => day.selected)
+                      .map((day) => (
+                        <li
+                          key={day.dayOfWeek}
+                          className="rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-forest-800"
+                        >
+                          {c.dayNames[day.dayOfWeek]} · {c.mealTypes[day.mealType]}
+                        </li>
+                      ))}
+                  </ul>
+                )}
+
                 {/* Reward progress preview */}
                 <div className="mt-5 rounded-2xl bg-forest-50 p-4">
                   <p className="text-sm font-semibold text-forest-900">
-                    {c.rewardAdds.replace("{n}", String(plan.quantity * quantity))}
+                    {c.rewardAdds.replace("{n}", String(totalMealCount))}
                   </p>
                   <p className="mt-1 text-xs text-mute">
                     {c.rewardAfter.replace("{boxes}", String(rewardBoxesAfter))}
@@ -376,7 +612,7 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
             )}
 
             {/* Step navigation */}
-            <footer className="flex items-center justify-between gap-3 border-t border-sand-200 px-5 py-4 sm:px-7">
+            <footer className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-sand-200 bg-[#f6f1e6]/95 px-5 py-4 backdrop-blur sm:px-7">
               <button
                 type="button"
                 onClick={() => (step === 1 ? onClose() : setStep((step - 1) as Step))}
@@ -384,13 +620,25 @@ export function MealBookingModal({ meal, onClose, onConfirm }: BookingModalProps
               >
                 {step === 1 ? c.close : c.back}
               </button>
+
+              {step === 1 && (
+                <div className="order-last flex w-full items-center justify-between gap-3 sm:order-none sm:w-auto">
+                  <span className="text-xs font-semibold text-forest-900">
+                    {c.selectedBoxes.replace("{n}", String(totalMealCount))}
+                    <span className="text-mute"> | </span>
+                    {c.totalLabel.replace("{amount}", String(subtotal - memberDiscount))}
+                  </span>
+                </div>
+              )}
+
               {step < 3 && (
                 <button
                   type="button"
                   onClick={() => setStep((step + 1) as Step)}
-                  className="rounded-full bg-forest-700 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-forest-800"
+                  disabled={step === 1 && totalMealCount === 0}
+                  className="rounded-full bg-forest-700 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-forest-800 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {c.next}
+                  {step === 1 ? c.nextConfirm : c.next}
                 </button>
               )}
             </footer>

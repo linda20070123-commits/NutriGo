@@ -51,6 +51,22 @@ export interface CommerceCopy {
     planB: { title: string; detail: string; price: string; note: string; recommended: string };
     perBox: string;
     boxesPerCycle: string;
+    scheduleTitle: string;
+    windowCurrent: string;
+    windowNext: string;
+    windowCutoff: string;
+    cutoffWed: string;
+    cutoffSun: string;
+    selectAll: string;
+    weekdaysLunch: string;
+    clearSelection: string;
+    dayNames: string[];
+    mealTypes: { lunch: string; dinner: string; both: string };
+    mealIcons: { lunch: string; dinner: string; both: string };
+    selectedBoxes: string;
+    totalLabel: string;
+    nextConfirm: string;
+    rewardNote: string;
     tdeeTitle: string;
     tdeeBody: string;
     tdeeOfDay: string;
@@ -132,6 +148,23 @@ const en: CommerceCopy = {
     },
     perBox: "per box",
     boxesPerCycle: "boxes per cycle",
+    scheduleTitle: "Select Dates & Meal Times",
+    windowCurrent: "📍 Current Window",
+    windowNext: "📍 Next Window",
+    windowCutoff: "Ordering window",
+    cutoffWed: "Wednesday cutoff",
+    cutoffSun: "Sunday cutoff",
+    selectAll: "Select All",
+    weekdaysLunch: "Weekdays Lunch Only",
+    clearSelection: "Clear",
+    dayNames: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    mealTypes: { lunch: "Lunch", dinner: "Dinner", both: "Both" },
+    mealIcons: { lunch: "☀️", dinner: "🌙", both: "🥗" },
+    selectedBoxes: "Selected: {n} boxes",
+    totalLabel: "Total: HK$ {amount}",
+    nextConfirm: "Next: Confirm Meals",
+    rewardNote:
+      "This order includes {n} boxes, which will add {n} credits toward your 10/20-box Reward System cashback tracker.",
     tdeeTitle: "How this fits your day",
     tdeeBody: "Energy, protein, and fiber for the chosen dish against your daily budget.",
     tdeeOfDay: "{pct} of your daily energy budget",
@@ -217,6 +250,22 @@ const zhCN: CommerceCopy = {
     },
     perBox: "每份",
     boxesPerCycle: "份 / 每期",
+    scheduleTitle: "选择日期与用餐时段",
+    windowCurrent: "📍 当前窗口",
+    windowNext: "📍 下一个窗口",
+    windowCutoff: "订货窗口",
+    cutoffWed: "周三截单",
+    cutoffSun: "周日截单",
+    selectAll: "全选",
+    weekdaysLunch: "只选工作日午餐",
+    clearSelection: "清空",
+    dayNames: ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"],
+    mealTypes: { lunch: "午餐", dinner: "晚餐", both: "午餐 + 晚餐" },
+    mealIcons: { lunch: "☀️", dinner: "🌙", both: "🥗" },
+    selectedBoxes: "已选：{n} 份",
+    totalLabel: "合计：HK$ {amount}",
+    nextConfirm: "下一步：确认餐食",
+    rewardNote: "此订单包含 {n} 份餐盒，将为你的 10/20 份奖励系统现金回报追踪器增加 {n} 个积分。",
     tdeeTitle: "这餐如何配合你的一天",
     tdeeBody: "所选菜品的能量、蛋白质与纤维，对照你的每日预算。",
     tdeeOfDay: "占你每日能量预算的 {pct}",
@@ -302,6 +351,22 @@ const zhHK: CommerceCopy = {
     },
     perBox: "每份",
     boxesPerCycle: "份 / 每期",
+    scheduleTitle: "選擇日期與用餐時段",
+    windowCurrent: "📍 當前窗口",
+    windowNext: "📍 下一個窗口",
+    windowCutoff: "訂貨窗口",
+    cutoffWed: "週三截單",
+    cutoffSun: "週日截單",
+    selectAll: "全選",
+    weekdaysLunch: "只選工作日午餐",
+    clearSelection: "清空",
+    dayNames: ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"],
+    mealTypes: { lunch: "午餐", dinner: "晚餐", both: "午餐 + 晚餐" },
+    mealIcons: { lunch: "☀️", dinner: "🌙", both: "🥗" },
+    selectedBoxes: "已選：{n} 份",
+    totalLabel: "合計：HK$ {amount}",
+    nextConfirm: "下一步：確認餐食",
+    rewardNote: "此訂單包含 {n} 份餐盒，將為你的 10/20 份獎勵系統現金回報追蹤器增加 {n} 個積分。",
     tdeeTitle: "這餐如何配合你的一天",
     tdeeBody: "所選菜品的能量、蛋白質與纖維，對照你的每日預算。",
     tdeeOfDay: "佔你每日能量預算的 {pct}",
